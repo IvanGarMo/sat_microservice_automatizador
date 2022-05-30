@@ -74,7 +74,6 @@ public class CargadorFacturas {
         //Procedo a descomprimir los archivos
         List<File> archivosZip = new ArrayList<>();
         for(int i=0; i<files.length; i++) {
-            System.out.println("Trabajando con Zip: "+files[i].getAbsolutePath());
             String fileZip = files[i].getAbsolutePath();
             File destDir = new File(folderTemp);
             byte[] buffer = new byte[1024];
@@ -118,7 +117,6 @@ public class CargadorFacturas {
         File destFile = new File(destinationDir, zipEntry.getName());
         String destDirPath = destinationDir.getCanonicalPath();
         String destFilePath = destFile.getCanonicalPath();
-        System.out.println("Salvando file: "+destFilePath);
         if (!destFilePath.startsWith(destDirPath + File.separator)) {
             throw new IOException("Entry is outside of the target dir: " + zipEntry.getName());
         }

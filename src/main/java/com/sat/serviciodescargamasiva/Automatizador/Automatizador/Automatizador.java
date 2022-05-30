@@ -28,7 +28,7 @@ public class Automatizador {
         ResponseData rd = new ResponseData();
         try {
             List<File> archivos = cargadorFacturas.obtenFacturas(idDescarga);
-            procesadorFacturas.procesaFacturas(archivos, rfcCliente, idCliente, rfcUidUserFirebase);
+            procesadorFacturas.procesaFacturas(archivos, rfcCliente, idCliente, rfcUidUserFirebase, idDescarga);
         } catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {

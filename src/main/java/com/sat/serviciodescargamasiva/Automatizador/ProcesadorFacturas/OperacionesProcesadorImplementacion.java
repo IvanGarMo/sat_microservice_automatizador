@@ -42,4 +42,13 @@ class OperacionesProcesadorImplementacion implements OperacionesProcesadorDB {
         TipoImpuesto[] impuestos = objectMapper.readValue(json, TipoImpuesto[].class);
         return impuestos;
     }
+
+    @Override
+    public void guardaClaveProdPendienteRegla(long claveProdServ, long idSolicitud) {
+        SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Automatizador_Guarda_Producto_Pendiente");
+        Map<String, Object> inParamMap = new HashMap<>();
+        inParamMap.put("_claveProdServ", claveProdServ);
+        inParamMap.put("_idSolicitud", idSolicitud);
+        jdbc.execute(inParamMap);
+    }
 }

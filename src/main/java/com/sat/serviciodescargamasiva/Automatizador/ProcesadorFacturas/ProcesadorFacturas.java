@@ -36,7 +36,8 @@ public class ProcesadorFacturas {
         this.facturasNoPUE = new ArrayList<>();
     }
 
-    public void procesaFacturas(List<File> facturasAProcesar, String rfcCliente, long idCliente, String uidUser)
+    public void procesaFacturas(List<File> facturasAProcesar, String rfcCliente, long idCliente, String uidUser,
+                                long idDescarga)
             throws ParserConfigurationException,
             IOException, SAXException,
             FacturaPueNotFoundException {
@@ -53,7 +54,7 @@ public class ProcesadorFacturas {
             DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(f);
             doc.getDocumentElement().normalize();
-            Factura facturaProcesada = procesaFacturaIndividual(rfcCliente, facturaEnTrabajo, doc);
+            Factura facturaProcesada = procesaFacturaIndividual(rfcCliente, facturaEnTrabajo, doc, idDescarga);
             if(facturaProcesada.isEsPUE()) {
                 this.facturasPUE.add(facturaProcesada);
             } else {
@@ -74,7 +75,7 @@ public class ProcesadorFacturas {
         Collections.sort(this.reglas);
     }
 
-    private Factura procesaFacturaIndividual(String rfcCliente, Factura factura, Document document) {
+    private Factura procesaFacturaIndividual(String rfcCliente, Factura factura, Document document, long idDescarga) {
         //Primero es necesario indicar si el cliente es el emisor o el receptor de la factura
         rfcCliente = rfcCliente.toUpperCase();
         Node nodeComprobante = document.getElementsByTagName("cfdi:Comprobante").item(0);
@@ -128,6 +129,8 @@ public class ProcesadorFacturas {
                 String codigo = reglaAplicable.getCodigoCuenta();
                 cuenta.setCodigoCuenta(codigo);
                 factura.addCuenta(cuenta);
+            } else {
+                facturasRepo.guardaClaveProdPendienteRegla(claveProdServ, idDescarga);
             }
         }
 
