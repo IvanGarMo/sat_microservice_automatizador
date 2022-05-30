@@ -43,14 +43,14 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
 
     @Override
     public ResponseData eliminaCuenta(long idCuenta) {
-        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("EliminaCuenta");
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cuenta_Elimina");
         Map<String, Object> inParamMap = new HashMap<>();
         inParamMap.put("_idCuenta", idCuenta);
 
         Map<String, Object> outParam = jdbc.execute(inParamMap);
         ResponseData rd = new ResponseData();
 
-        boolean opValida = ((boolean) outParam.get("_opvalida"));
+        boolean opValida = ((boolean) outParam.get("_opValida"));
         String mensaje = outParam.get("_mensaje").toString();
         rd.setOpValida(opValida);
         rd.addMensaje(mensaje);

@@ -3,6 +3,7 @@ package com.sat.serviciodescargamasiva.Automatizador.Controllers;
 import com.sat.serviciodescargamasiva.Automatizador.Automatizador.ResponseData;
 import com.sat.serviciodescargamasiva.Automatizador.Reglas.OperacionesRegla;
 import com.sat.serviciodescargamasiva.Automatizador.Reglas.Regla;
+import com.sat.serviciodescargamasiva.Automatizador.permisos.Autorizacion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 public class ReglasController {
     @Autowired
     private OperacionesRegla reglaRepo;
+    @Autowired
+    private Autorizacion autorizacion;
 
     @PostMapping("/cliente")
     public ResponseEntity<ResponseData> creaReglaIndividual(@RequestHeader("uuid") String uuid,
@@ -25,7 +28,8 @@ public class ReglasController {
     @PostMapping("/usuario")
     public ResponseEntity<ResponseData> creaReglaUsuario(@RequestHeader("uuid") String uuid,
                                                          @RequestBody Regla regla) {
-        ResponseData rd = reglaRepo.creaReglaNivelUsuario(uuid, regla.getIdCuenta(), regla.getClaveProdServ());
+        long idUsuario = autorizacion.cargaIdUsaurio(uuid);
+        ResponseData rd = reglaRepo.creaReglaNivelUsuario(idUsuario, regla.getIdCuenta(), regla.getClaveProdServ());
         return new ResponseEntity<>(rd, HttpStatus.OK);
     }
 

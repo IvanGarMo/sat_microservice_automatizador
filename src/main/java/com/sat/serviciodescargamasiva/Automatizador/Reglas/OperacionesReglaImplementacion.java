@@ -18,10 +18,10 @@ public class OperacionesReglaImplementacion implements OperacionesRegla {
     private SimpleJdbcCall jdbc;
 
     @Override
-    public ResponseData creaReglaNivelUsuario(String uidUserFirebase, long idCuenta, long claveProdServ) {
-        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("CreaReglaNivelUsuario");
+    public ResponseData creaReglaNivelUsuario(long idUsuario, long idCuenta, long claveProdServ) {
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Regla_Crea_Nivel_Usuario");
         Map<String, Object> inParamMap = new HashMap<>();
-        inParamMap.put("_uidUserFirebase", uidUserFirebase);
+        inParamMap.put("_idUsuario", idUsuario);
         inParamMap.put("_idCuenta", idCuenta);
         inParamMap.put("_claveProdServ", claveProdServ);
 
@@ -30,7 +30,7 @@ public class OperacionesReglaImplementacion implements OperacionesRegla {
 
     @Override
     public ResponseData creaReglaNivelCliente(long idCliente, long idCuenta, long claveProdServ) {
-        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("CreaReglaNivelCliente");
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Regla_Crea_Nivel_Cliente");
         Map<String, Object> inParamMap = new HashMap<>();
         inParamMap.put("_idCliente", idCliente);
         inParamMap.put("_idCuenta", idCuenta);
@@ -41,7 +41,7 @@ public class OperacionesReglaImplementacion implements OperacionesRegla {
 
     @Override
     public ResponseData eliminaReglaNivelUsuario(long idRegla) {
-        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("EliminaReglaNivelUsuario");
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Regla_Elimina_Nivel_Usuario");
         Map<String, Object> inParamMap = new HashMap<>();
         inParamMap.put("_idRegla", idRegla);
 
@@ -50,7 +50,7 @@ public class OperacionesReglaImplementacion implements OperacionesRegla {
 
     @Override
     public ResponseData eliminaReglaNivelCliente(long idRegla) {
-        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("EliminaReglaNivelCliente");
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Regla_Elimina_Nivel_Cliente");
         Map<String, Object> inParamMap = new HashMap<>();
         inParamMap.put("_idRegla", idRegla);
 
@@ -60,10 +60,8 @@ public class OperacionesReglaImplementacion implements OperacionesRegla {
     private ResponseData obtenerRespuesta(SimpleJdbcCall jdbcCall, Map<String, Object> inParamMap) {
         Map<String, Object> outParamMap = jdbcCall.execute(inParamMap);
         ResponseData rd = new ResponseData();
-        boolean opValida = ((boolean) outParamMap.get("_opvalida"));
-        log.info("OpValida: "+opValida);
+        boolean opValida = ((boolean) outParamMap.get("_opValida"));
         String mensaje = outParamMap.get("_mensaje").toString();
-        log.info("Mensaje: "+mensaje);
         rd.setOpValida(opValida);
         rd.addMensaje(mensaje);
         return  rd;
