@@ -34,7 +34,7 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
         Map<String, Object> outParam = jdbc.execute(inParamMap);
         ResponseData rd = new ResponseData();
 
-        boolean opValida = ((boolean) outParam.get("_opvalida"));
+        boolean opValida = ((boolean) outParam.get("_opValida"));
         String mensaje = outParam.get("_mensaje").toString();
         rd.setOpValida(opValida);
         rd.addMensaje(mensaje);

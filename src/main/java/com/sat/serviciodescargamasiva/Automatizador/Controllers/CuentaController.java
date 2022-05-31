@@ -26,6 +26,7 @@ public class CuentaController {
             throws JsonProcessingException {
         //long idUsuario = 1;
         long idUsuario = autorizacion.cargaIdUsaurio(uidUserFirebase);
+        System.out.println("Cuentas - Id del usuario: "+idUsuario);
         Cuenta[] cuentas = cuentaRepo.cargaCuentas(idUsuario, idCliente);
         return new ResponseEntity<>(cuentas, HttpStatus.OK);
     }
