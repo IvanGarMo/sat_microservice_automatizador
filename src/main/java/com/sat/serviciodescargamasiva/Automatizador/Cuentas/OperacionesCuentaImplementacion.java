@@ -15,6 +15,8 @@ import java.util.Map;
 public class OperacionesCuentaImplementacion implements OperacionesCuenta {
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private CategoriaCuentaJpa categoriaCuentaRepo;
     private SimpleJdbcCall jdbc;
 
     @Override
@@ -74,10 +76,10 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
     }
 
     @Override
-    public ClienteInfoBasica[] cargaClientes(String uidUserFirebase) throws JsonProcessingException {
+    public ClienteInfoBasica[] cargaClientes(long idUsuario) throws JsonProcessingException {
         jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cuenta_Carga_Cliente");
         Map<String, Object> inParamMap = new HashMap<>();
-        inParamMap.put("_uidUserFirebase", uidUserFirebase);
+        inParamMap.put("_idUsuario", idUsuario);
 
         Map<String, Object> outParam = jdbc.execute(inParamMap);
         ResponseData rd = new ResponseData();
@@ -120,6 +122,11 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
 
         Map<String, Object> outParam = jdbc.execute(inParamMap);
         return outParam.get("_resultado").toString();
+    }
+
+    @Override
+    public Iterable<CategoriaCuenta> cargaCategoriasCuentas() {
+        return categoriaCuentaRepo.findAll();
     }
 
 

@@ -39,6 +39,21 @@ public class Cuenta {
     private boolean cuentaNivelUsuario;
     @JsonDeserialize(using = CustomBooleanDeserializer.class)
     private boolean cuentaNivelCliente;
+
+    public Cuenta(CuentaReprFrontEnd cuenta) {
+        this.idCuenta = -1;
+        this.codigoPadre = cuenta.getCodigoPadre();
+        this.codigo = cuenta.getCodigo();
+        this.idCategoria = ((int) cuenta.getIdCategoria());
+        this.nivel = cuenta.getNivel();
+        this.descripcion = cuenta.getDescripcion();
+        this.idUsuario = cuenta.getIdUsuario();
+        this.idCliente = cuenta.getIdCliente();
+        this.esCuentaOrigen = cuenta.isEsCuentaOrigen();
+        this.esCuentaPersonalizada = cuenta.isEsCuentaPersonalizada();
+        this.cuentaNivelUsuario = cuenta.isCuentaNivelUsuario();
+        this.cuentaNivelCliente = cuenta.isCuentaNivelCliente();
+    }
 }
 
 class CustomBooleanDeserializer extends StdDeserializer<Boolean> {
