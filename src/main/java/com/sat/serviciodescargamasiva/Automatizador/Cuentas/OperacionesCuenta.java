@@ -11,4 +11,5 @@ public interface OperacionesCuenta {
     ResponseData actualizaNombreCuenta(long idCuenta, String descripcion);
     String cargaCuentasParaDespliegue(String uidUserFirebase);
     Iterable<CategoriaCuenta> cargaCategoriasCuentas();
+    CuentaRegla[] cargaReglasCuenta(BusquedaCuentaRegla busqCuentaRegla) throws JsonProcessingException;
 }

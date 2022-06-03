@@ -23,8 +23,11 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
     public ResponseData creaCuenta(Cuenta cuenta) {
         jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cuenta_Crea");
         Map<String, Object> inParamMap = new HashMap<>();
+        System.out.println("CodigoPadre: "+cuenta.getCodigoPadre());
         inParamMap.put("_codigoPadre", cuenta.getCodigoPadre());
+        System.out.println("Codigo: "+cuenta.getCodigo());
         inParamMap.put("_codigo", cuenta.getCodigo());
+        System.out.println("IdCategoria: "+cuenta.getIdCategoria());
         inParamMap.put("_idCategoria", cuenta.getIdCategoria());
         inParamMap.put("_nivel", cuenta.getNivel());
         inParamMap.put("_descripcion", cuenta.getDescripcion());
@@ -87,14 +90,7 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
 
         ObjectMapper objectMapper = new ObjectMapper();
         ClienteInfoBasica[] clientes = objectMapper.readValue(resultadoJson, ClienteInfoBasica[].class);
-
-        ClienteInfoBasica[] clientesCompleto = new ClienteInfoBasica[clientes.length+1];
-        clientesCompleto[0] = new ClienteInfoBasica(-1, "-SELECCIONE UN CLIENTE-");
-        for(int i=0; i<clientes.length; i++) {
-            clientesCompleto[i+1] = clientes[i];
-        }
-
-        return clientesCompleto;
+        return clientes;
     }
 
     @Override
@@ -129,5 +125,20 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
         return categoriaCuentaRepo.findAll();
     }
 
+    @Override
+    public CuentaRegla[] cargaReglasCuenta(BusquedaCuentaRegla busqCuentaRegla) throws JsonProcessingException {
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cuenta_Carga_Regla");
+        Map<String, Object> inParamMap = new HashMap<>();
+        inParamMap.put("_idCuenta", busqCuentaRegla.getIdCuenta());
+        inParamMap.put("_idUsuario", busqCuentaRegla.getIdUsuario());
+        inParamMap.put("_idCliente", busqCuentaRegla.getIdCliente());
 
+        Map<String, Object> outParam = jdbc.execute(inParamMap);
+        Object outResultado = outParam.get("_resultado");
+        if(outResultado == null) return null;
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonResultado = outResultado.toString();
+        CuentaRegla[] cuentaReglas = objectMapper.readValue(jsonResultado, CuentaRegla[].class);
+        return cuentaReglas;
+    }
 }

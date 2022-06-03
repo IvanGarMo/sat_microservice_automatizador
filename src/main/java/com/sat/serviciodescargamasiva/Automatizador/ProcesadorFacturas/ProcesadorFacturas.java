@@ -29,11 +29,20 @@ public class ProcesadorFacturas {
     private List<TipoImpuesto> tipoImpuestos;
     @Autowired
     private OperacionesProcesadorDB facturasRepo;
+    private ProductosReglaNoCumplidoJson jsonProductosSinRegla;
+    private boolean productosPendientes;
+    private long idSolicitud;
 
     public ProcesadorFacturas() {
         //this.facturasProcesadas = new ArrayList<>();
         this.facturasPUE = new ArrayList<>();
         this.facturasNoPUE = new ArrayList<>();
+        this.jsonProductosSinRegla = new ProductosReglaNoCumplidoJson();
+        this.productosPendientes = false;
+    }
+
+    public boolean hayProductosPendientes() {
+        return this.productosPendientes;
     }
 
     public void procesaFacturas(List<File> facturasAProcesar, String rfcCliente, long idCliente, String uidUser,
@@ -41,6 +50,8 @@ public class ProcesadorFacturas {
             throws ParserConfigurationException,
             IOException, SAXException,
             FacturaPueNotFoundException {
+
+        this.idSolicitud = idDescarga;
 
         //Cargamos las reglas
         cargaReglas(idCliente, uidUser);
@@ -69,7 +80,6 @@ public class ProcesadorFacturas {
     }
 
     private void cargaReglas(long idCliente, String uidUser) throws JsonProcessingException {
-        System.out.println("Voy a cargar las reglas");
         this.reglas = Arrays.asList(facturasRepo.cargaReglas(idCliente, uidUser));
         this.tipoImpuestos = Arrays.asList(facturasRepo.cargaImpuesto());
         Collections.sort(this.reglas);
@@ -130,7 +140,11 @@ public class ProcesadorFacturas {
                 cuenta.setCodigoCuenta(codigo);
                 factura.addCuenta(cuenta);
             } else {
-                facturasRepo.guardaClaveProdPendienteRegla(claveProdServ, idDescarga);
+                ProductoReglaNoCumplido prod = new ProductoReglaNoCumplido(
+                  claveProdServ, idDescarga, true
+                );
+                this.jsonProductosSinRegla.addProducto(prod);
+                this.productosPendientes = true;
             }
         }
 
@@ -201,6 +215,10 @@ public class ProcesadorFacturas {
 
         cuenta.setImporte(Double.parseDouble(node.getAttributes().getNamedItem("Importe").getTextContent()));
         return cuenta;
+    }
+
+    public void guardaProductosPendientes() throws JsonProcessingException {
+        this.facturasRepo.guardaClaveProdPendienteRegla(this.idSolicitud, this.jsonProductosSinRegla);
     }
 
 }

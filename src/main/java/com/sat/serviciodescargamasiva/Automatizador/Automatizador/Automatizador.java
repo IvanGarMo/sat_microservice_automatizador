@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.util.List;
 
 @Service
-@Data
 @NoArgsConstructor
 public class Automatizador {
     @Autowired
@@ -29,6 +28,9 @@ public class Automatizador {
         try {
             List<File> archivos = cargadorFacturas.obtenFacturas(idDescarga);
             procesadorFacturas.procesaFacturas(archivos, rfcCliente, idCliente, rfcUidUserFirebase, idDescarga);
+            if(procesadorFacturas.hayProductosPendientes()) {
+                procesadorFacturas.guardaProductosPendientes();
+            }
         } catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {

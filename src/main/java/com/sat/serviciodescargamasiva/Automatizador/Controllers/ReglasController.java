@@ -1,6 +1,10 @@
 package com.sat.serviciodescargamasiva.Automatizador.Controllers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.sat.serviciodescargamasiva.Automatizador.Automatizador.ResponseData;
+import com.sat.serviciodescargamasiva.Automatizador.Cuentas.BusquedaCuentaRegla;
+import com.sat.serviciodescargamasiva.Automatizador.Cuentas.CuentaRegla;
+import com.sat.serviciodescargamasiva.Automatizador.Cuentas.OperacionesCuenta;
 import com.sat.serviciodescargamasiva.Automatizador.Reglas.OperacionesRegla;
 import com.sat.serviciodescargamasiva.Automatizador.Reglas.Regla;
 import com.sat.serviciodescargamasiva.Automatizador.permisos.Autorizacion;
@@ -16,6 +20,8 @@ public class ReglasController {
     private OperacionesRegla reglaRepo;
     @Autowired
     private Autorizacion autorizacion;
+    @Autowired
+    private OperacionesCuenta cuentaRepo;
 
     @PostMapping("/cliente")
     public ResponseEntity<ResponseData> creaReglaIndividual(@RequestHeader("uuid") String uuid,
@@ -44,5 +50,12 @@ public class ReglasController {
     public ResponseEntity<ResponseData> eliminaReglaUsuario(@PathVariable("idRegla") Long idRegla) {
         ResponseData rd = reglaRepo.eliminaReglaNivelUsuario(idRegla);
         return new ResponseEntity<>(rd, HttpStatus.OK);
+    }
+
+    @PostMapping("/cuenta")
+    public ResponseEntity<CuentaRegla[]> creaCuentaRegla(@RequestBody BusquedaCuentaRegla busquedaCuentaRegla)
+            throws JsonProcessingException {
+        CuentaRegla[] cuentas = cuentaRepo.cargaReglasCuenta(busquedaCuentaRegla);
+        return new ResponseEntity<>(cuentas, HttpStatus.OK);
     }
 }

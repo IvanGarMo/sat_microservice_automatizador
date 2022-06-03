@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Repository
-class OperacionesProcesadorImplementacion implements OperacionesProcesadorDB {
+public class OperacionesProcesadorImplementacion implements OperacionesProcesadorDB {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -44,11 +44,13 @@ class OperacionesProcesadorImplementacion implements OperacionesProcesadorDB {
     }
 
     @Override
-    public void guardaClaveProdPendienteRegla(long claveProdServ, long idSolicitud) {
-        SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Automatizador_Guarda_Producto_Pendiente");
+    public void guardaClaveProdPendienteRegla(long idSolicitud, ProductosReglaNoCumplidoJson productos) throws JsonProcessingException {
+        ObjectMapper objMapper = new ObjectMapper();
+        String json = objMapper.writeValueAsString(productos);
+        SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Automatizador_Guarda_Pendientes");
         Map<String, Object> inParamMap = new HashMap<>();
-        inParamMap.put("_claveProdServ", claveProdServ);
         inParamMap.put("_idSolicitud", idSolicitud);
+        inParamMap.put("_productos", json);
         jdbc.execute(inParamMap);
     }
 }
