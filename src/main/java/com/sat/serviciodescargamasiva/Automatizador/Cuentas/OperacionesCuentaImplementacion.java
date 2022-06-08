@@ -23,7 +23,6 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
     public ResponseData creaCuenta(Cuenta cuenta) {
         jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cuenta_Crea");
         Map<String, Object> inParamMap = new HashMap<>();
-        System.out.println("CodigoPadre: "+cuenta.getCodigoPadre());
         inParamMap.put("_codigoPadre", cuenta.getCodigoPadre());
         System.out.println("Codigo: "+cuenta.getCodigo());
         inParamMap.put("_codigo", cuenta.getCodigo());
@@ -140,5 +139,56 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
         String jsonResultado = outResultado.toString();
         CuentaRegla[] cuentaReglas = objectMapper.readValue(jsonResultado, CuentaRegla[].class);
         return cuentaReglas;
+    }
+
+    @Override
+    public ReglaSimplificado[] cargaPendientes(long idDescarga) throws JsonProcessingException {
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Carga_Pendientes");
+        Map<String, Object> inParam = new HashMap<>();
+        inParam.put("_idSolicitud", idDescarga);
+
+        Map<String, Object> outParam = jdbc.execute(inParam);
+        Object objResultado = outParam.get("_resultado");
+        if(objResultado == null) return null;
+
+        String jsonResultado = objResultado.toString();
+        ObjectMapper objectMapper = new ObjectMapper();
+        ReglaSimplificado[] reglas = objectMapper.readValue(jsonResultado, ReglaSimplificado[].class);
+        return reglas;
+    }
+
+    @Override
+    public Cuenta[] cuentasPorCategoriaCliente(long idCategoria, long idUsuario, long idCliente) throws JsonProcessingException {
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cuenta_Carga_Por_Categoria");
+        Map<String, Object> inParam = new HashMap<>();
+        inParam.put("_idCategoria", idCategoria);
+        inParam.put("_idUsuario", idUsuario);
+        inParam.put("_idCliente", idCliente);
+
+        Map<String, Object> outParam = jdbc.execute(inParam);
+        Object objResultado = outParam.get("_resultado");
+        if(objResultado == null) return null;
+
+        String jsonResultado = objResultado.toString();
+        ObjectMapper objectMapper = new ObjectMapper();
+        Cuenta[] cuentas = objectMapper.readValue(jsonResultado, Cuenta[].class);
+        return cuentas;
+    }
+
+    @Override
+    public ClienteSimplificado cargaClienteSimplificado(long idSolicitud) {
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cliente_Carga_Simplificado");
+        Map<String, Object> inParam = new HashMap<>();
+        inParam.put("_idSolicitud", idSolicitud);
+
+        Map<String, Object> outParam = jdbc.execute(inParam);
+        String rfcCliente = outParam.get("_rfcCliente").toString();
+        long idCliente = Long.valueOf(outParam.get("_idCliente").toString());
+        String nombre = outParam.get("_nombreCliente").toString();
+        ClienteSimplificado cliente = new ClienteSimplificado();
+        cliente.setIdCliente(idCliente);
+        cliente.setNombre(nombre);
+        cliente.setRfc(rfcCliente);
+        return cliente;
     }
 }

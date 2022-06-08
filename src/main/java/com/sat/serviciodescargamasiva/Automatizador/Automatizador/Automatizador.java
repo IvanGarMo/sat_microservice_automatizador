@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+@Data
 @Service
 @NoArgsConstructor
 public class Automatizador {
@@ -23,11 +24,12 @@ public class Automatizador {
     @Autowired
     private ProcesadorFacturas procesadorFacturas;
 
-    public ResponseData contabilizaFacturas(long idDescarga, String rfcCliente, long idCliente, String rfcUidUserFirebase) {
+    public ResponseData contabilizaFacturas(long idDescarga, String rfcCliente, long idCliente, long idUsuario) {
         ResponseData rd = new ResponseData();
         try {
             List<File> archivos = cargadorFacturas.obtenFacturas(idDescarga);
-            procesadorFacturas.procesaFacturas(archivos, rfcCliente, idCliente, rfcUidUserFirebase, idDescarga);
+            procesadorFacturas.initialize(idDescarga, idCliente, rfcCliente, idUsuario);
+            procesadorFacturas.procesaFacturas(archivos);
             if(procesadorFacturas.hayProductosPendientes()) {
                 procesadorFacturas.guardaProductosPendientes();
             }
@@ -43,6 +45,7 @@ public class Automatizador {
 
         }
 
-        return rd;
+        //return rd;
+        return new ResponseData();
     }
 }

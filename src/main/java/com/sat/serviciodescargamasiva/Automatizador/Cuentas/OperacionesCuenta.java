@@ -12,4 +12,7 @@ public interface OperacionesCuenta {
     String cargaCuentasParaDespliegue(String uidUserFirebase);
     Iterable<CategoriaCuenta> cargaCategoriasCuentas();
     CuentaRegla[] cargaReglasCuenta(BusquedaCuentaRegla busqCuentaRegla) throws JsonProcessingException;
+    ReglaSimplificado[] cargaPendientes(long idDescarga) throws JsonProcessingException;
+    Cuenta[] cuentasPorCategoriaCliente(long idCategoria, long idUsuario, long idCliente) throws JsonProcessingException;
+    ClienteSimplificado cargaClienteSimplificado(long idSolicitud);
 }

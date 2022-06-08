@@ -5,6 +5,7 @@ import com.sat.serviciodescargamasiva.Automatizador.Automatizador.ResponseData;
 import com.sat.serviciodescargamasiva.Automatizador.Cuentas.BusquedaCuentaRegla;
 import com.sat.serviciodescargamasiva.Automatizador.Cuentas.CuentaRegla;
 import com.sat.serviciodescargamasiva.Automatizador.Cuentas.OperacionesCuenta;
+import com.sat.serviciodescargamasiva.Automatizador.Cuentas.ReglaSimplificado;
 import com.sat.serviciodescargamasiva.Automatizador.Reglas.OperacionesRegla;
 import com.sat.serviciodescargamasiva.Automatizador.Reglas.Regla;
 import com.sat.serviciodescargamasiva.Automatizador.permisos.Autorizacion;
@@ -57,5 +58,11 @@ public class ReglasController {
             throws JsonProcessingException {
         CuentaRegla[] cuentas = cuentaRepo.cargaReglasCuenta(busquedaCuentaRegla);
         return new ResponseEntity<>(cuentas, HttpStatus.OK);
+    }
+
+    @GetMapping("/pendiente/{idSolicitud}")
+    public ResponseEntity<ReglaSimplificado[]> cargaReglaSimplificado(@PathVariable("idSolicitud") long idSolicitud) throws JsonProcessingException {
+        ReglaSimplificado[] reglas = cuentaRepo.cargaPendientes(idSolicitud);
+        return new ResponseEntity<>(reglas, HttpStatus.OK);
     }
 }

@@ -10,13 +10,22 @@ public class Cuenta {
     private boolean debe;
     private boolean haber;
 
+    public Cuenta() {
+
+    }
+
+    public Cuenta(boolean debe, boolean haber) {
+        this.debe = debe;
+        this.haber = haber;
+    }
+
     public Cuenta(EmisorReceptor emisorReceptor) {
         if(emisorReceptor == EmisorReceptor.EMISOR) {
             this.debe = true;
             this.haber = false;
         } else {
-            this.debe = true;
-            this.haber = false;
+            this.debe = false;
+            this.haber = true;
         }
     }
 }

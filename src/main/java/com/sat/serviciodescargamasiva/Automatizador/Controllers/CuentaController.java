@@ -65,4 +65,18 @@ public class CuentaController {
         ResponseData rd = cuentaRepo.actualizaNombreCuenta(cuenta.getIdCuenta(), cuenta.getDescripcion());
         return new ResponseEntity<>(rd, HttpStatus.OK);
     }
+
+    @GetMapping("/busca-por-categoria")
+    public ResponseEntity<Cuenta[]> cargaCuentasPorCategoriaPorClientePorUsuario(
+                @RequestHeader("uuid") String uidUserFirebase,
+                @RequestParam long idCategoria,
+                @RequestParam long idCliente
+                ) throws JsonProcessingException {
+        long idUsuario = autorizacion.cargaIdUsaurio(uidUserFirebase);
+        Cuenta[] cuentas = cuentaRepo.cuentasPorCategoriaCliente(idCategoria, idUsuario, idCliente);
+
+        if(cuentas == null) return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+
+        return new ResponseEntity<>(cuentas, HttpStatus.OK);
+    }
 }

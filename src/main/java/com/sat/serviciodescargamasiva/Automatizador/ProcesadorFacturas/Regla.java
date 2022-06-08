@@ -15,6 +15,9 @@ import java.io.IOException;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Regla implements Comparable<Regla> {
+    public static final String RETENCION_ISR = "001";
+    public static final String RETENCION_IVA = "002";
+
     private String codigoCuenta;
     private String descCuentaSat;
     private long claveProdServ;
@@ -27,6 +30,7 @@ public class Regla implements Comparable<Regla> {
     @JsonDeserialize(using = CustomBooleanDeserializer.class)
     private boolean impuestoRetenido;
     private double tasaRetenido;
+    private String impuesto;
 
 
     public Regla(long claveProdServ) {

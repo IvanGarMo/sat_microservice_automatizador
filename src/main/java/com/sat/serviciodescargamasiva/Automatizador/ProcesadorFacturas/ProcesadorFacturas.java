@@ -1,6 +1,13 @@
 package com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.Concepto;
+import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.FacturaJson;
+import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.Retencion;
+import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.Traslado;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,6 +20,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +41,9 @@ public class ProcesadorFacturas {
     private ProductosReglaNoCumplidoJson jsonProductosSinRegla;
     private boolean productosPendientes;
     private long idSolicitud;
+    private long idUsuario;
+    private long idCliente;
+    private String rfcCliente;
 
     public ProcesadorFacturas() {
         //this.facturasProcesadas = new ArrayList<>();
@@ -41,31 +53,41 @@ public class ProcesadorFacturas {
         this.productosPendientes = false;
     }
 
+    public void initialize(long idSolicitud, long idCliente, String rfcCliente, long idUsuario) throws JsonProcessingException {
+        this.idSolicitud = idSolicitud;
+        this.idCliente = idCliente;
+        this.rfcCliente = rfcCliente.toUpperCase();
+        this.idUsuario = idUsuario;
+        cargaReglas(idCliente);
+    }
+
+    private void cargaReglas(long idCliente) throws JsonProcessingException {
+        this.reglas = facturasRepo.cargaReglas(idCliente);
+        this.tipoImpuestos = Arrays.asList(facturasRepo.cargaImpuesto());
+        Collections.sort(this.reglas);
+    }
+
     public boolean hayProductosPendientes() {
         return this.productosPendientes;
     }
 
-    public void procesaFacturas(List<File> facturasAProcesar, String rfcCliente, long idCliente, String uidUser,
-                                long idDescarga)
+    public void procesaFacturas(List<File> facturasAProcesar)
             throws ParserConfigurationException,
             IOException, SAXException,
             FacturaPueNotFoundException {
-
-        this.idSolicitud = idDescarga;
-
-        //Cargamos las reglas
-        cargaReglas(idCliente, uidUser);
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-
         //Seteamos si se usará debe o haber
         for(File f : facturasAProcesar) {
+            //Obtenemos una representación en JSON de la factura
+            XmlMapper xmlMapper = new XmlMapper();
+            xmlMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            xmlMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+            FacturaJson facturaJson = xmlMapper.readValue(f, FacturaJson.class);
+
+            //También creamos un objeto factura local que manejará las cuentas
             Factura facturaEnTrabajo = new Factura();
             facturaEnTrabajo.setIdFactura(f.getName());
 
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            Document doc = db.parse(f);
-            doc.getDocumentElement().normalize();
-            Factura facturaProcesada = procesaFacturaIndividual(rfcCliente, facturaEnTrabajo, doc, idDescarga);
+            Factura facturaProcesada = procesaFacturaIndividual(facturaEnTrabajo, facturaJson);
             if(facturaProcesada.isEsPUE()) {
                 this.facturasPUE.add(facturaProcesada);
             } else {
@@ -79,61 +101,36 @@ public class ProcesadorFacturas {
         }
     }
 
-    private void cargaReglas(long idCliente, String uidUser) throws JsonProcessingException {
-        this.reglas = Arrays.asList(facturasRepo.cargaReglas(idCliente, uidUser));
-        this.tipoImpuestos = Arrays.asList(facturasRepo.cargaImpuesto());
-        Collections.sort(this.reglas);
-    }
-
-    private Factura procesaFacturaIndividual(String rfcCliente, Factura factura, Document document, long idDescarga) {
+    private Factura procesaFacturaIndividual(Factura factura, FacturaJson facturaJson) throws IOException {
         //Primero es necesario indicar si el cliente es el emisor o el receptor de la factura
-        rfcCliente = rfcCliente.toUpperCase();
-        Node nodeComprobante = document.getElementsByTagName("cfdi:Comprobante").item(0);
-        Node metodoPagoAttribute = nodeComprobante.getAttributes().getNamedItem("MetodoPago");
+        if(facturaJson.getEmisor().equals(this.rfcCliente)) {
+            factura.setClienteEmisorReceptor(EmisorReceptor.EMISOR);
+        }
 
         //Solo trabajaremos con facturas PUE. Aquellas que tengan otro método de pago o no tengan el
         //campo incluido serán ignoradas
-        if(metodoPagoAttribute == null || !metodoPagoAttribute.getTextContent().equalsIgnoreCase("PUE")) {
+        if(facturaJson.getMetodoPago().equals(FacturaJson.PAGO_EN_UNA_SOLA_EXHIBICION)) {
+            factura.setEsPUE(true);
+        } else {
             factura.setEsPUE(false);
             return factura;
-        } else {
-            factura.setEsPUE(true);
         }
 
-        NodeList nodeListEmisor = document.getElementsByTagName("cfdi:Emisor");
-        NodeList nodeListReceptor = document.getElementsByTagName("cfdi:Receptor");
-        String rfcEmisor = nodeListEmisor.item(0).getAttributes().getNamedItem("Rfc").getTextContent();
-        String rfcReceptor = nodeListReceptor.item(0).getAttributes().getNamedItem("Rfc").getTextContent();
+        for(Concepto concepto : facturaJson.getConceptos()) {
+            long claveProdServ;
+            double importe;
 
-        if(rfcEmisor.equals(rfcCliente)) {
-            factura.setClienteEmisorReceptor(EmisorReceptor.EMISOR);
-        } else if(rfcReceptor.equals(rfcCliente)) {
-            factura.setClienteEmisorReceptor(EmisorReceptor.RECEPTOR);
-        }
+            claveProdServ = Long.parseLong(concepto.getClaveProdServ());
+            importe = Double.parseDouble(concepto.getImporte());
+            String descripcionOperacion = concepto.getDescripcion();
 
-        NodeList nodeList = document.getElementsByTagName("cfdi:Concepto");
-        if(nodeList == null) {
-            return null;
-        }
-
-        //Por cada concepto que venga en la factura, será necesario hacer una cuenta
-        for(int i=0; i<nodeList.getLength(); i++) {
+            //Por cada concepto se creará una cuenta
             Cuenta cuenta = new Cuenta(factura.getClienteEmisorReceptor());
-            Node node = nodeList.item(i);
-
-            //Cargamos los datos de cada operación registrada en la factura y los guardamos
-            long claveProdServ = Long.parseLong(node.getAttributes().getNamedItem("ClaveProdServ").getTextContent());
-            //System.out.println("Buscando claveProdServ: "+claveProdServ);
-            double importe = Double.parseDouble(node.getAttributes().getNamedItem("Importe").getTextContent());
-            String descripcionOperacion = node.getAttributes().getNamedItem("Descripcion").getTextContent();
             cuenta.setImporte(importe);
             cuenta.setDescripcionOperacion(descripcionOperacion);
 
-            //Encontramos la regla que aplique para este caso
             Regla reglaAEncontrar = new Regla(claveProdServ);
-
             int indiceRegla = Collections.binarySearch(this.reglas, reglaAEncontrar);
-
             if(indiceRegla >= 0) {
                 Regla reglaAplicable = this.reglas.get(indiceRegla);
                 String codigo = reglaAplicable.getCodigoCuenta();
@@ -141,58 +138,70 @@ public class ProcesadorFacturas {
                 factura.addCuenta(cuenta);
             } else {
                 ProductoReglaNoCumplido prod = new ProductoReglaNoCumplido(
-                  claveProdServ, idDescarga, true
+                        claveProdServ, this.idSolicitud, true, this.idCliente, this.idUsuario
                 );
                 this.jsonProductosSinRegla.addProducto(prod);
                 this.productosPendientes = true;
             }
+
+            //Luego tramitamos los impuestos de cada concepto
+            //Luego sigue calcular los impuestos
+            //Cuando en el receptor viene el cliente, el impuesto es acreditable y va en el debe
+            //Cuando en el emisor viene el cliente, el impuesto es trasladado y va en el haber
+            //Aquí uso el arreglo de impuestos, no el de reglas
+            for(Traslado traslado : concepto.getImpuestos().getTraslados()) {
+                //Checo por vacio porque hay ocasiones qne se exentan los impuestos,
+                //sin embargo esta etiqueta todavia viene, por lo que avienta un error de puntero nulo
+                if(traslado.getImporte() == null || traslado.getImporte().isEmpty()) continue;
+                for (TipoImpuesto tipoImpuesto : tipoImpuestos) {
+                    System.out.printf("TipoImpuesto: "+tipoImpuesto);
+                }
+                TipoImpuesto tipoImpuesto =
+                        this.tipoImpuestos.stream().filter(
+                                t -> t.getImpuesto().equals(traslado.getImpuesto())
+                        ).findFirst().get();
+                Cuenta cuentaImpuestoDeclarado;
+                if(factura.getClienteEmisorReceptor() == EmisorReceptor.EMISOR) {
+                    cuentaImpuestoDeclarado = new Cuenta(true, false);
+                    cuentaImpuestoDeclarado.setDescripcionOperacion(tipoImpuesto.getDescripcionImpuesto());
+                    cuentaImpuestoDeclarado.setImporte(Double.valueOf(traslado.getImporte()));
+                } else {
+                    cuentaImpuestoDeclarado = new Cuenta(false, true);
+                    cuentaImpuestoDeclarado.setDescripcionOperacion(tipoImpuesto.getDescripcionImpuesto());
+                    cuentaImpuestoDeclarado.setImporte(Double.valueOf(traslado.getImporte()));
+                }
+                factura.addCuenta(cuentaImpuestoDeclarado);
+            }
+
+            //Luego las retenciones, en caso de que alla
+            /*Retencion[] retenciones = concepto.getImpuestos().getRetenciones();
+            if(retenciones != null) {
+                for(Retencion r : retenciones) {
+                    Cuenta cuentaRetencion;
+                    //Si la factura esta como emitida, la retención va del lado del debe
+                    //Si la factura esta como recibida, va en el lado del haber
+                    if(factura.getClienteEmisorReceptor() == EmisorReceptor.EMISOR) {
+                        cuentaRetencion = new Cuenta(EmisorReceptor.RECEPTOR);
+                        cuentaRetencion.setDebe(true);
+                        cuentaRetencion.setHaber(false);
+                        cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
+                    } else {
+                        cuentaRetencion = new Cuenta(EmisorReceptor.EMISOR);
+                        cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
+                        cuentaRetencion.setDebe(false);
+                        cuentaRetencion.setHaber(true);
+                        cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
+                    }
+                    Regla descripcionRetencion =
+                            this.reglas.stream()
+                                    .filter(impuestoAplicable ->
+                                            impuestoAplicable.getImpuesto().equals(r.getImpuesto())).findFirst().get();
+                    cuentaRetencion.setDescripcionOperacion(descripcionRetencion.getDescClaveProdServ());
+                    factura.addCuenta(cuentaRetencion);
+                }
+            }*/
         }
 
-        //Luego sigue calcular los impuestos
-        //Cuando en el receptor viene el cliente, el impuesto es acreditable y va en el debe
-        //Cuando en el emisor viene el cliente, el impuesto es trasladado y va en el haber
-
-        /*NodeList impuestos = document.getElementsByTagName("cfdi:Traslados");
-
-        Regla reglaIvaAcreditable = this.reglas.stream().filter(regla -> regla.isImpuestoAcreditable()).findFirst().get();
-        Regla reglaIvaTrasladado = this.reglas.stream().filter(regla -> regla.isImpuestoTrasladado()).findFirst().get();
-
-        List<Regla> reglasRetencion = new ArrayList<>();
-        this.reglas.stream().forEach(regla -> {
-            if(regla.isImpuestoTrasladado()) reglasRetencion.add(regla);
-        });
-
-        Cuenta impuesto;
-        for(int i=0; i<impuestos.getLength(); i++) {
-            impuesto = new Cuenta(factura.getClienteEmisorReceptor());
-            impuesto.setImporte(Double.parseDouble(impuestos.item(i).getAttributes().getNamedItem("Importe").getTextContent()));
-            if(factura.getClienteEmisorReceptor() == EmisorReceptor.EMISOR) {
-                impuesto.setCodigoCuenta(reglaIvaAcreditable.getCodigoCuenta());
-            } else {
-                impuesto.setCodigoCuenta(reglaIvaTrasladado.getCodigoCuenta());
-            }
-        }*/
-
-        //Busco por impuestos retenidos. Puede no haber
-
-        /*Cuenta impuestoRetenido;
-        NodeList retenciones = document.getElementsByTagName("cfdi:Retenciones");
-        if(retenciones != null) {
-            NodeList listaRetenciones = document.getElementsByTagName("cfdi:Retencion");
-            for(int i=0; i<listaRetenciones.getLength(); i++) {
-                Node retencionActual = listaRetenciones.item(0);
-                String tipoImpuesto = retencionActual.getAttributes().getNamedItem("Impuesto").getTextContent();
-
-                //Requiere distinto procesamiento, dependiendo si es IVA o impuesto retenido
-                if(TipoImpuesto.esRetencionIva(tipoImpuesto)) {
-                    impuestoRetenido = procesarIvaRetenido(retencionActual, factura, reglasRetencion);
-                    factura.addCuenta(impuestoRetenido);
-                } else if(TipoImpuesto.esRetencionISR(tipoImpuesto)) {
-
-                }
-
-            }
-        }*/
 
         return factura;
     }
