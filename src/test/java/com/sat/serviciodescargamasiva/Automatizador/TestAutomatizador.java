@@ -37,13 +37,20 @@ public class TestAutomatizador {
         procesadorFacturas.initialize(8, 200, "MONE711201Q44", 1);
         procesadorFacturas.procesaFacturas(listFiles);
         List<Factura> facturaPue = procesadorFacturas.getFacturasPUE();
-        facturaPue.forEach(f -> {
-            System.out.println("Procesando la factura: "+f);
+        if(procesadorFacturas.hayProductosPendientes()) {
+            procesadorFacturas.guardaProductosPendientes();
+        }
+        /*facturaPue.forEach(f -> {
             List<Cuenta> cuentas = f.getCuentas();
             System.out.println("-----------------------------------------");
+            System.out.println("\tCuenta\tDescripción operación\t\tDebe\t\tHaber");
             cuentas.forEach(c -> {
-                System.out.println(c);
+                if(c.isDebe()) {
+                    System.out.println(c.getCodigoCuenta()+" "+c.getDescripcionOperacion()+"\t\tX");
+                } else {
+                    System.out.println(c.getCodigoCuenta()+" "+c.getDescripcionOperacion()+"\t\t\t\tX");
+                }
             });
-        });
+        });*/
     }
 }

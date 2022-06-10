@@ -2,6 +2,7 @@ package com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sat.serviciodescargamasiva.Automatizador.Cuentas.FacturaDespliegue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
@@ -33,7 +34,7 @@ public class OperacionesProcesadorImplementacion implements OperacionesProcesado
     }
 
     @Override
-    public TipoImpuesto[] cargaImpuesto() throws JsonProcessingException {
+    public List<TipoImpuesto> cargaImpuesto() throws JsonProcessingException {
         SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Impuesto_Carga");
         Map<String, Object> inParamMap = new HashMap<>();
 
@@ -42,7 +43,20 @@ public class OperacionesProcesadorImplementacion implements OperacionesProcesado
 
         ObjectMapper objectMapper = new ObjectMapper();
         TipoImpuesto[] impuestos = objectMapper.readValue(json, TipoImpuesto[].class);
-        return impuestos;
+        return Arrays.asList(impuestos);
+    }
+
+    @Override
+    public List<RetencionRegla> cargaRetenciones() throws JsonProcessingException {
+        SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Retenciones_Carga");
+        Map<String, Object> inParamMap = new HashMap<>();
+
+        Map<String, Object> outParamMap = jdbc.execute(inParamMap);
+        String json = outParamMap.get("_resultado").toString();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        RetencionRegla[] retenciones = objectMapper.readValue(json, RetencionRegla[].class);
+        return Arrays.asList(retenciones);
     }
 
     @Override
@@ -53,6 +67,19 @@ public class OperacionesProcesadorImplementacion implements OperacionesProcesado
         Map<String, Object> inParamMap = new HashMap<>();
         inParamMap.put("_idSolicitud", idSolicitud);
         inParamMap.put("_productos", json);
+        jdbc.execute(inParamMap);
+    }
+
+    @Override
+    public void guardaFacturaProcesada(long idDescarga, Factura factura) throws JsonProcessingException {
+        FacturaPublica facturaPublica = new FacturaPublica(factura);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonFactura = objectMapper.writeValueAsString(facturaPublica);
+
+        SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Automatizador_Guarda_Factura_Procesada");
+        Map<String, Object> inParamMap = new HashMap<>();
+        inParamMap.put("_idDescarga", idDescarga);
+        inParamMap.put("_factura", jsonFactura);
         jdbc.execute(inParamMap);
     }
 }

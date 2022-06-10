@@ -11,20 +11,13 @@ import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.Tras
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,6 +29,7 @@ public class ProcesadorFacturas {
     private List<Factura> facturasNoPUE;
     private List<Regla> reglas;
     private List<TipoImpuesto> tipoImpuestos;
+    private List<RetencionRegla> retenciones;
     @Autowired
     private OperacionesProcesadorDB facturasRepo;
     private ProductosReglaNoCumplidoJson jsonProductosSinRegla;
@@ -63,8 +57,13 @@ public class ProcesadorFacturas {
 
     private void cargaReglas(long idCliente) throws JsonProcessingException {
         this.reglas = facturasRepo.cargaReglas(idCliente);
-        this.tipoImpuestos = Arrays.asList(facturasRepo.cargaImpuesto());
+        this.tipoImpuestos = facturasRepo.cargaImpuesto();
+        this.cargaRetenciones();
         Collections.sort(this.reglas);
+    }
+
+    private void cargaRetenciones() throws JsonProcessingException {
+        this.retenciones = facturasRepo.cargaRetenciones();
     }
 
     public boolean hayProductosPendientes() {
@@ -133,10 +132,14 @@ public class ProcesadorFacturas {
             int indiceRegla = Collections.binarySearch(this.reglas, reglaAEncontrar);
             if(indiceRegla >= 0) {
                 Regla reglaAplicable = this.reglas.get(indiceRegla);
+                System.out.println("Regla: "+reglaAplicable);
                 String codigo = reglaAplicable.getCodigoCuenta();
                 cuenta.setCodigoCuenta(codigo);
                 factura.addCuenta(cuenta);
             } else {
+                System.out.println("Salvando producto Regla no cumplido");
+                System.out.println("IdCliente: "+this.idCliente);
+                System.out.println("IdUsuario: "+this.idUsuario);
                 ProductoReglaNoCumplido prod = new ProductoReglaNoCumplido(
                         claveProdServ, this.idSolicitud, true, this.idCliente, this.idUsuario
                 );
@@ -153,9 +156,6 @@ public class ProcesadorFacturas {
                 //Checo por vacio porque hay ocasiones qne se exentan los impuestos,
                 //sin embargo esta etiqueta todavia viene, por lo que avienta un error de puntero nulo
                 if(traslado.getImporte() == null || traslado.getImporte().isEmpty()) continue;
-                for (TipoImpuesto tipoImpuesto : tipoImpuestos) {
-                    System.out.printf("TipoImpuesto: "+tipoImpuesto);
-                }
                 TipoImpuesto tipoImpuesto =
                         this.tipoImpuestos.stream().filter(
                                 t -> t.getImpuesto().equals(traslado.getImpuesto())
@@ -174,7 +174,7 @@ public class ProcesadorFacturas {
             }
 
             //Luego las retenciones, en caso de que alla
-            /*Retencion[] retenciones = concepto.getImpuestos().getRetenciones();
+            Retencion[] retenciones = concepto.getImpuestos().getRetenciones();
             if(retenciones != null) {
                 for(Retencion r : retenciones) {
                     Cuenta cuentaRetencion;
@@ -184,22 +184,21 @@ public class ProcesadorFacturas {
                         cuentaRetencion = new Cuenta(EmisorReceptor.RECEPTOR);
                         cuentaRetencion.setDebe(true);
                         cuentaRetencion.setHaber(false);
-                        cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
                     } else {
                         cuentaRetencion = new Cuenta(EmisorReceptor.EMISOR);
                         cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
                         cuentaRetencion.setDebe(false);
                         cuentaRetencion.setHaber(true);
-                        cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
                     }
-                    Regla descripcionRetencion =
-                            this.reglas.stream()
-                                    .filter(impuestoAplicable ->
-                                            impuestoAplicable.getImpuesto().equals(r.getImpuesto())).findFirst().get();
-                    cuentaRetencion.setDescripcionOperacion(descripcionRetencion.getDescClaveProdServ());
+                    cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
+                    RetencionRegla retRegla =
+                            this.retenciones.stream().filter(
+                                    retCiclo
+                                            -> retCiclo.getTasaCuota().equals(r.getTasaOCuota())).findFirst().get();
+                    cuentaRetencion.setDescripcionOperacion(retRegla.getDescripcion());
                     factura.addCuenta(cuentaRetencion);
                 }
-            }*/
+            }
         }
 
 

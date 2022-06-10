@@ -3,12 +3,16 @@ package com.sat.serviciodescargamasiva.Automatizador.Cuentas;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sat.serviciodescargamasiva.Automatizador.Automatizador.ResponseData;
+import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Factura;
+import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.FacturaPublica;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Repository
@@ -190,5 +194,57 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
         cliente.setNombre(nombre);
         cliente.setRfc(rfcCliente);
         return cliente;
+    }
+
+    @Override
+    public DetallesImplementacion cargaDetallesContabilidad(long idSolicitud) {
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Automatizador_Carga_Detalles_Procesamiento");
+        Map<String, Object> inParam = new HashMap<>();
+        inParam.put("_idSolicitud", idSolicitud);
+
+        Map<String, Object> outParam = jdbc.execute(inParam);
+        boolean solicitudProcesadaCorrectamente = ((boolean) outParam.get("_solicitudProcesadaCorrectamente"));
+        boolean solicitudProcesadaConAspectosPendientes = ((boolean) outParam.get("_solicitudConAspectosPendientes"));
+        boolean pendientes = ((boolean) outParam.get("_pendientes"));
+        int conteoPendientes = ((int) outParam.get("_conteoPendientes"));
+        String descripcionEstado = outParam.get("_descripcionEstado").toString();
+        boolean solicitudAunNoProcesada = ((boolean) outParam.get("_solicitudAunNoProcesada"));
+
+        DetallesImplementacion detallesImplementacion =
+                new DetallesImplementacion(solicitudProcesadaCorrectamente, solicitudProcesadaConAspectosPendientes,
+                        pendientes, conteoPendientes, descripcionEstado, solicitudAunNoProcesada);
+        return detallesImplementacion;
+    }
+
+    @Override
+    public List<FacturaDespliegue> cargaFacturasDespliegue(long idSolicitud) throws JsonProcessingException {
+        jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Automatizador_Carga_Facturas_Solicitud");
+        Map<String, Object> inParam = new HashMap<>();
+        inParam.put("_idDescarga", idSolicitud);
+
+        Map<String, Object> outParam = new HashMap<>();
+        Object jsonObj = outParam.get("_facturaSimplificado");
+        if(jsonObj == null) return null;
+
+        String jsonString = jsonObj.toString();
+        ObjectMapper objectMapper = new ObjectMapper();
+        FacturaDespliegue[] facturaDespliegue = objectMapper.readValue(jsonString, FacturaDespliegue[].class);
+        return Arrays.asList(facturaDespliegue);
+    }
+
+    @Override
+    public FacturaPublica cargaFactura(long idFactura) throws JsonProcessingException {
+        SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Automatizador_Carga_Factura");
+        Map<String, Object> inParamMap = new HashMap<>();
+        inParamMap.put("_idRegistro", idFactura);
+
+        Map<String, Object> outParam = new HashMap<>();
+        Object objFactura = outParam.get("_factura");
+        if(objFactura == null) return null;
+
+        String strFactura = objFactura.toString();
+        ObjectMapper objectMapper = new ObjectMapper();
+        FacturaPublica facturaPublica = objectMapper.readValue(strFactura, FacturaPublica.class);
+        return facturaPublica;
     }
 }
