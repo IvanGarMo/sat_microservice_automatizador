@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sat.serviciodescargamasiva.Automatizador.Automatizador.ResponseData;
 import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Factura;
 import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.FacturaPublica;
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
@@ -26,6 +27,7 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
     @Override
     public ResponseData creaCuenta(Cuenta cuenta) {
         jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cuenta_Crea");
+        System.out.println("ProcedimientoAlmacenado: "+cuenta);
         Map<String, Object> inParamMap = new HashMap<>();
         inParamMap.put("_codigoPadre", cuenta.getCodigoPadre());
         System.out.println("Codigo: "+cuenta.getCodigo());
@@ -247,4 +249,39 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
         FacturaPublica facturaPublica = objectMapper.readValue(strFactura, FacturaPublica.class);
         return facturaPublica;
     }
+
+    @SneakyThrows
+    @Override
+    public List<CuentaReglaListado> cargaListadoReglasPorCuentaCliente(long idCuenta, long idCliente) {
+        SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Cuenta_Carga_Regla_Cuenta_Usuario");
+        Map<String, Object> inParamMap = new HashMap<>();
+        inParamMap.put("_idCuenta", idCuenta);
+        inParamMap.put("_idCliente", idCliente);
+
+        Map<String, Object> outParam = new HashMap<>();
+        Object objReglas = outParam.get("_resultado");
+        if(objReglas == null) return null;
+
+        String strReglas = objReglas.toString();
+        ObjectMapper objectMapper = new ObjectMapper();
+        CuentaReglaListado[] reglas = objectMapper.readValue(strReglas, CuentaReglaListado[].class);
+        return Arrays.asList(reglas);
+    }
+
+    @Override
+    public ReglaCuentaSimplificado[] cargaReglaCuentaSimplificado(long idCliente, long idCuenta) throws JsonProcessingException {
+        SimpleJdbcCall jdbc = new SimpleJdbcCall(jdbcTemplate).withProcedureName("Carga_Reglas_Por_Cliente_Cuenta");
+        Map<String, Object> inParamMap = new HashMap<>();
+        inParamMap.put("_idCliente", idCliente);
+        inParamMap.put("_idCuenta", idCuenta);
+
+        Map<String, Object> outParamMap = new HashMap<>();
+        Object objResultado = outParamMap.get("_resultado");
+        if(objResultado == null) return null;
+        String strResultado = objResultado.toString();
+        ObjectMapper objectMapper = new ObjectMapper();
+        ReglaCuentaSimplificado[] reglas = objectMapper.readValue(strResultado, ReglaCuentaSimplificado[].class);
+        return reglas;
+    }
+
 }

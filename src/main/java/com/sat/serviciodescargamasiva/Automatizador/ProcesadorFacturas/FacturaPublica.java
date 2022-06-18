@@ -9,12 +9,14 @@ import java.util.List;
 public class FacturaPublica {
     private String idFactura;
     private List<Cuenta> cuenta;
+    private String rfc;
     private boolean emisor;
     private boolean receptor;
 
     public FacturaPublica(Factura factura) {
         this.idFactura = factura.getIdFactura();
         this.cuenta = factura.getCuentas();
+        this.rfc = factura.getRfc();
         if(factura.getClienteEmisorReceptor() == EmisorReceptor.EMISOR) {
             this.emisor = true;
             this.receptor = false;

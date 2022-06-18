@@ -2,10 +2,7 @@ package com.sat.serviciodescargamasiva.Automatizador.Controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.sat.serviciodescargamasiva.Automatizador.Automatizador.ResponseData;
-import com.sat.serviciodescargamasiva.Automatizador.Cuentas.BusquedaCuentaRegla;
-import com.sat.serviciodescargamasiva.Automatizador.Cuentas.CuentaRegla;
-import com.sat.serviciodescargamasiva.Automatizador.Cuentas.OperacionesCuenta;
-import com.sat.serviciodescargamasiva.Automatizador.Cuentas.ReglaSimplificado;
+import com.sat.serviciodescargamasiva.Automatizador.Cuentas.*;
 import com.sat.serviciodescargamasiva.Automatizador.Reglas.OperacionesRegla;
 import com.sat.serviciodescargamasiva.Automatizador.Reglas.Regla;
 import com.sat.serviciodescargamasiva.Automatizador.permisos.Autorizacion;
@@ -62,7 +59,17 @@ public class ReglasController {
 
     @GetMapping("/pendiente/{idSolicitud}")
     public ResponseEntity<ReglaSimplificado[]> cargaReglaSimplificado(@PathVariable("idSolicitud") long idSolicitud) throws JsonProcessingException {
+        System.out.println("IdSolicitud: "+idSolicitud);
         ReglaSimplificado[] reglas = cuentaRepo.cargaPendientes(idSolicitud);
+        System.out.println("ReglasPendiente: "+reglas);
+        return new ResponseEntity<>(reglas, HttpStatus.OK);
+    }
+
+    @GetMapping("/reglas-por-cuenta/")
+    public ResponseEntity<ReglaCuentaSimplificado[]> cargaReglaCuentaSimplificado(
+                @RequestParam("idCliente") long idCliente,
+                @RequestParam("idCuenta") long idCuenta) throws JsonProcessingException {
+        ReglaCuentaSimplificado[] reglas = cuentaRepo.cargaReglaCuentaSimplificado(idCliente, idCuenta);
         return new ResponseEntity<>(reglas, HttpStatus.OK);
     }
 }

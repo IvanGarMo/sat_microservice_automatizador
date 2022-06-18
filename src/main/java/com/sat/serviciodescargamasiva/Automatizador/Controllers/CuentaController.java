@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/cuentas")
@@ -21,6 +22,7 @@ public class CuentaController {
     @GetMapping("/categorias")
     public ResponseEntity<Iterable<CategoriaCuenta>> cargaCategorias(@RequestHeader("uuid") String uidUserFirebase) {
         Iterable<CategoriaCuenta> categorias = cuentaRepo.cargaCategoriasCuentas();
+        System.out.println("Categorias: "+categorias);
         return new ResponseEntity<>(categorias, HttpStatus.OK);
     }
 
@@ -28,10 +30,8 @@ public class CuentaController {
     public ResponseEntity<Cuenta[]> cargaCuentas(@RequestHeader("uuid") String uidUserFirebase,
                                                  @PathVariable("idCliente") long idCliente)
             throws JsonProcessingException {
-        //long idUsuario = 1;
         long idUsuario = autorizacion.cargaIdUsaurio(uidUserFirebase);
-        System.out.println("Cuentas - Id del usuario: "+idUsuario);
-        System.out.println("Cuentas - Id del cliente: "+idCliente);
+        System.out.println("IdUsuario: "+idUsuario+" idCliente: "+idCliente);
         Cuenta[] cuentas = cuentaRepo.cargaCuentas(idUsuario, idCliente);
         return new ResponseEntity<>(cuentas, HttpStatus.OK);
     }
@@ -48,6 +48,8 @@ public class CuentaController {
                                                    @RequestBody CuentaReprFrontEnd cuentaFrontEnd) {
         long idUsuario = autorizacion.cargaIdUsaurio(uidUserFirebase);
         Cuenta cuenta = new Cuenta(cuentaFrontEnd);
+        System.out.println("CuentaFrontEnd: "+cuentaFrontEnd);
+        System.out.println("Cuenta creada: "+cuenta);
         cuenta.setIdUsuario(idUsuario);
         ResponseData rd = cuentaRepo.creaCuenta(cuenta);
         return new ResponseEntity<>(rd, HttpStatus.OK);
@@ -78,5 +80,17 @@ public class CuentaController {
         if(cuentas == null) return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
 
         return new ResponseEntity<>(cuentas, HttpStatus.OK);
+    }
+
+    @GetMapping("/resumen-reglas")
+    public ResponseEntity<List<CuentaReglaListado>> cargaReglasPorCuentaPorUsuario(
+            @RequestHeader("uuid") String uidUserFirebase,
+            @RequestParam("idCliente") long idCliente,
+            @RequestParam("idCuenta") long idCuenta
+    ) {
+        System.out.println("IdCliente: "+idCliente+" idCuenta: "+idCuenta);
+        List<CuentaReglaListado> cuentas = cuentaRepo.cargaListadoReglasPorCuentaCliente(idCuenta, idCliente);
+        if(cuentas == null) return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(null, HttpStatus.OK);
     }
 }

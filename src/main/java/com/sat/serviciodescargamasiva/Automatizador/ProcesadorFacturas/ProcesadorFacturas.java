@@ -84,6 +84,7 @@ public class ProcesadorFacturas {
 
             //También creamos un objeto factura local que manejará las cuentas
             Factura facturaEnTrabajo = new Factura();
+            facturaEnTrabajo.setRfc(this.rfcCliente);
             facturaEnTrabajo.setIdFactura(f.getName());
 
             Factura facturaProcesada = procesaFacturaIndividual(facturaEnTrabajo, facturaJson);

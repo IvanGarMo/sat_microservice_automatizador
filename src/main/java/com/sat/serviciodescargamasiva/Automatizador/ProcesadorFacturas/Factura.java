@@ -10,6 +10,7 @@ public class Factura {
     private String idFactura;
     private List<Cuenta> cuentas;
     private EmisorReceptor clienteEmisorReceptor;
+    private String rfc;
 
     private boolean esPUE;
     public Factura() {

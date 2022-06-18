@@ -21,4 +21,6 @@ public interface OperacionesCuenta {
     DetallesImplementacion cargaDetallesContabilidad(long idSolicitud);
     List<FacturaDespliegue> cargaFacturasDespliegue(long idSolicitud) throws JsonProcessingException;
     FacturaPublica cargaFactura(long idFactura) throws JsonProcessingException;
+    List<CuentaReglaListado> cargaListadoReglasPorCuentaCliente(long idCuenta, long idCliente);
+    ReglaCuentaSimplificado[] cargaReglaCuentaSimplificado(long idCliente, long idCuenta) throws JsonProcessingException;
 }
