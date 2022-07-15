@@ -31,7 +31,7 @@ public class TestAutomatizador {
 
     @Test
     public void testLectura() throws IOException, FacturaPueNotFoundException, ParserConfigurationException, SAXException {
-        String pathFolder = "/home/ivanovich/Desktop/XML DR DOMINGO";
+        /*String pathFolder = "/home/ivanovich/Desktop/XML DR DOMINGO";
         File[] files = new File(pathFolder).listFiles();
         List<File> listFiles = Arrays.asList(files);
         procesadorFacturas.initialize(8, 200, "MONE711201Q44", 1);
@@ -39,7 +39,7 @@ public class TestAutomatizador {
         List<Factura> facturaPue = procesadorFacturas.getFacturasPUE();
         if(procesadorFacturas.hayProductosPendientes()) {
             procesadorFacturas.guardaProductosPendientes();
-        }
+        }*/
         /*facturaPue.forEach(f -> {
             List<Cuenta> cuentas = f.getCuentas();
             System.out.println("-----------------------------------------");

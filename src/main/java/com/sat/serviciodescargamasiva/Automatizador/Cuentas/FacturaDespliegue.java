@@ -1,13 +1,17 @@
 package com.sat.serviciodescargamasiva.Automatizador.Cuentas;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.*;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Getter
+@Setter
 public class FacturaDespliegue {
+
+    @JsonProperty("idFactura")
     private long idFactura;
-    private String nombreFactura;
+
+    @JsonProperty("nombreFactura")
+    private JsonNode nombreFactura;
+
 }

@@ -1,6 +1,8 @@
 package com.sat.serviciodescargamasiva.Automatizador.Controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.sat.serviciodescargamasiva.Automatizador.Automatizador.Automatizador;
 import com.sat.serviciodescargamasiva.Automatizador.Automatizador.ResponseData;
 import com.sat.serviciodescargamasiva.Automatizador.Cuentas.ClienteSimplificado;
@@ -17,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/automatizador")
+@RequestMapping(path="/automatizador", produces="application/json")
 public class AutomatizadorController {
     @Autowired
     private Automatizador automatizador;
@@ -26,7 +28,7 @@ public class AutomatizadorController {
     @Autowired
     private Autorizacion autorizacion;
 
-    @PostMapping("/{idDescarga}")
+    @PostMapping("contabilizar/{idDescarga}")
     public ResponseEntity<ResponseData> realizaContabilidad(@RequestHeader("uuid") String uidUserFirebase,
                                                             @PathVariable("idDescarga") long idDescarga) {
         long idUsuario = autorizacion.cargaIdUsaurio(uidUserFirebase);

@@ -1,7 +1,9 @@
 package com.sat.serviciodescargamasiva.Automatizador.Cuentas;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.sat.serviciodescargamasiva.Automatizador.Automatizador.ResponseData;
 import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Factura;
 import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.FacturaPublica;
@@ -11,10 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Repository
 public class OperacionesCuentaImplementacion implements OperacionesCuenta {
@@ -224,14 +223,29 @@ public class OperacionesCuentaImplementacion implements OperacionesCuenta {
         Map<String, Object> inParam = new HashMap<>();
         inParam.put("_idDescarga", idSolicitud);
 
-        Map<String, Object> outParam = new HashMap<>();
+        Map<String, Object> outParam = jdbc.execute(inParam);
         Object jsonObj = outParam.get("_facturaSimplificado");
+
+        //borrar
+        //ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        //String json = ow.writeValueAsString(jsonObj);
+        //System.out.println(json);
+
+        //String json2 = "{ \"idFactura\":1, \"nombreFactura\":{ \"rfc\":\"SELG970104366\", \"cuenta\":[ { \"debe\":false, \"haber\":true, \"importe\":0.01, \"codigoCuenta\":\"102.1.1\", \"descripcionOperacion\":\"Servicios de Facturacion\" } ], \"emisor\":false, \"receptor\":true, \"idFactura\":\"e1d87d12-ef13-4d7d-b0af-8c18398da608.xml\" } }";
+        //ObjectMapper objectMapper = new ObjectMapper();
+        //FacturaDespliegue facturaDespliegue = objectMapper.readValue(json2, FacturaDespliegue.class);
+        //List<FacturaDespliegue> facturas = new ArrayList<>();
+        //facturas.add(facturaDespliegue);
+        //return facturas;
+        //borrar
+
         if(jsonObj == null) return null;
 
         String jsonString = jsonObj.toString();
         ObjectMapper objectMapper = new ObjectMapper();
         FacturaDespliegue[] facturaDespliegue = objectMapper.readValue(jsonString, FacturaDespliegue[].class);
         return Arrays.asList(facturaDespliegue);
+
     }
 
     @Override

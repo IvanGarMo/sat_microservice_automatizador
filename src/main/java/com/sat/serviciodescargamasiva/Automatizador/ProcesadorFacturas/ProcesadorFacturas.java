@@ -1,14 +1,19 @@
 package com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.Concepto;
 import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.FacturaJson;
 import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.Retencion;
 import com.sat.serviciodescargamasiva.Automatizador.ProcesadorFacturas.Json.Traslado;
 import lombok.Data;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Node;
@@ -24,6 +29,9 @@ import java.util.List;
 @Data
 @Service
 public class ProcesadorFacturas {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProcesadorFacturas.class);
+
     //private List<Factura> facturasProcesadas;
     private List<Factura> facturasPUE;
     private List<Factura> facturasNoPUE;
@@ -80,6 +88,7 @@ public class ProcesadorFacturas {
             XmlMapper xmlMapper = new XmlMapper();
             xmlMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
             xmlMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+            //System.out.println("factura json: ");
             FacturaJson facturaJson = xmlMapper.readValue(f, FacturaJson.class);
 
             //También creamos un objeto factura local que manejará las cuentas
@@ -99,6 +108,8 @@ public class ProcesadorFacturas {
         if(facturasPUE.isEmpty()) {
             throw new FacturaPueNotFoundException();
         }
+
+        this.guardarFacturasProcesadas();
     }
 
     private Factura procesaFacturaIndividual(Factura factura, FacturaJson facturaJson) throws IOException {
@@ -153,55 +164,66 @@ public class ProcesadorFacturas {
             //Cuando en el receptor viene el cliente, el impuesto es acreditable y va en el debe
             //Cuando en el emisor viene el cliente, el impuesto es trasladado y va en el haber
             //Aquí uso el arreglo de impuestos, no el de reglas
-            for(Traslado traslado : concepto.getImpuestos().getTraslados()) {
-                //Checo por vacio porque hay ocasiones qne se exentan los impuestos,
-                //sin embargo esta etiqueta todavia viene, por lo que avienta un error de puntero nulo
-                if(traslado.getImporte() == null || traslado.getImporte().isEmpty()) continue;
-                TipoImpuesto tipoImpuesto =
-                        this.tipoImpuestos.stream().filter(
-                                t -> t.getImpuesto().equals(traslado.getImpuesto())
-                        ).findFirst().get();
-                Cuenta cuentaImpuestoDeclarado;
-                if(factura.getClienteEmisorReceptor() == EmisorReceptor.EMISOR) {
-                    cuentaImpuestoDeclarado = new Cuenta(true, false);
-                    cuentaImpuestoDeclarado.setDescripcionOperacion(tipoImpuesto.getDescripcionImpuesto());
-                    cuentaImpuestoDeclarado.setImporte(Double.valueOf(traslado.getImporte()));
-                } else {
-                    cuentaImpuestoDeclarado = new Cuenta(false, true);
-                    cuentaImpuestoDeclarado.setDescripcionOperacion(tipoImpuesto.getDescripcionImpuesto());
-                    cuentaImpuestoDeclarado.setImporte(Double.valueOf(traslado.getImporte()));
+            try {
+                for (Traslado traslado : concepto.getImpuestos().getTraslados()) {
+                    //Checo por vacio porque hay ocasiones qne se exentan los impuestos,
+                    //sin embargo esta etiqueta todavia viene, por lo que avienta un error de puntero nulo
+                    if (traslado.getImporte() == null || traslado.getImporte().isEmpty()) continue;
+                    TipoImpuesto tipoImpuesto =
+                            this.tipoImpuestos.stream().filter(
+                                    t -> t.getImpuesto().equals(traslado.getImpuesto())
+                            ).findFirst().get();
+                    Cuenta cuentaImpuestoDeclarado;
+                    if (factura.getClienteEmisorReceptor() == EmisorReceptor.EMISOR) {
+                        cuentaImpuestoDeclarado = new Cuenta(true, false);
+                        cuentaImpuestoDeclarado.setDescripcionOperacion(tipoImpuesto.getDescripcionImpuesto());
+                        cuentaImpuestoDeclarado.setImporte(Double.valueOf(traslado.getImporte()));
+                    } else {
+                        cuentaImpuestoDeclarado = new Cuenta(false, true);
+                        cuentaImpuestoDeclarado.setDescripcionOperacion(tipoImpuesto.getDescripcionImpuesto());
+                        cuentaImpuestoDeclarado.setImporte(Double.valueOf(traslado.getImporte()));
+                    }
+                    factura.addCuenta(cuentaImpuestoDeclarado);
                 }
-                factura.addCuenta(cuentaImpuestoDeclarado);
+            } catch (Exception ex) {
+                LOGGER.info(ex.getMessage());
             }
 
             //Luego las retenciones, en caso de que alla
-            Retencion[] retenciones = concepto.getImpuestos().getRetenciones();
-            if(retenciones != null) {
-                for(Retencion r : retenciones) {
-                    Cuenta cuentaRetencion;
-                    //Si la factura esta como emitida, la retención va del lado del debe
-                    //Si la factura esta como recibida, va en el lado del haber
-                    if(factura.getClienteEmisorReceptor() == EmisorReceptor.EMISOR) {
-                        cuentaRetencion = new Cuenta(EmisorReceptor.RECEPTOR);
-                        cuentaRetencion.setDebe(true);
-                        cuentaRetencion.setHaber(false);
-                    } else {
-                        cuentaRetencion = new Cuenta(EmisorReceptor.EMISOR);
+            try {
+                Retencion[] retenciones = concepto.getImpuestos().getRetenciones();
+                if(retenciones != null) {
+                    for(Retencion r : retenciones) {
+                        Cuenta cuentaRetencion;
+                        //Si la factura esta como emitida, la retención va del lado del debe
+                        //Si la factura esta como recibida, va en el lado del haber
+                        if(factura.getClienteEmisorReceptor() == EmisorReceptor.EMISOR) {
+                            cuentaRetencion = new Cuenta(EmisorReceptor.RECEPTOR);
+                            cuentaRetencion.setDebe(true);
+                            cuentaRetencion.setHaber(false);
+                        } else {
+                            cuentaRetencion = new Cuenta(EmisorReceptor.EMISOR);
+                            cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
+                            cuentaRetencion.setDebe(false);
+                            cuentaRetencion.setHaber(true);
+                        }
                         cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
-                        cuentaRetencion.setDebe(false);
-                        cuentaRetencion.setHaber(true);
+                        RetencionRegla retRegla =
+                                this.retenciones.stream().filter(
+                                        retCiclo
+                                                -> retCiclo.getTasaCuota().equals(r.getTasaOCuota())).findFirst().get();
+                        cuentaRetencion.setDescripcionOperacion(retRegla.getDescripcion());
+                        factura.addCuenta(cuentaRetencion);
                     }
-                    cuentaRetencion.setImporte(Double.valueOf(r.getImporte()));
-                    RetencionRegla retRegla =
-                            this.retenciones.stream().filter(
-                                    retCiclo
-                                            -> retCiclo.getTasaCuota().equals(r.getTasaOCuota())).findFirst().get();
-                    cuentaRetencion.setDescripcionOperacion(retRegla.getDescripcion());
-                    factura.addCuenta(cuentaRetencion);
                 }
+            } catch (Exception ex) {
+                LOGGER.info(ex.getMessage());
             }
         }
 
+        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        String json = ow.writeValueAsString(factura);
+        System.out.println(json);
 
         return factura;
     }
@@ -226,8 +248,18 @@ public class ProcesadorFacturas {
         return cuenta;
     }
 
+    private void guardarFacturasProcesadas() throws JsonProcessingException {
+        for(Factura factura : this.facturasPUE) {
+            this.facturasRepo.guardaFacturaProcesada(this.idSolicitud, factura);
+        }
+        this.facturasPUE.clear();
+        this.facturasNoPUE.clear();
+    }
+
     public void guardaProductosPendientes() throws JsonProcessingException {
         this.facturasRepo.guardaClaveProdPendienteRegla(this.idSolicitud, this.jsonProductosSinRegla);
+        this.jsonProductosSinRegla = new ProductosReglaNoCumplidoJson();
+        this.productosPendientes = false;
     }
 
 }

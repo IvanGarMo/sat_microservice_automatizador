@@ -7,10 +7,8 @@ import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,6 +16,7 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -59,6 +58,7 @@ public class CargadorFacturas {
         Path path;
         for (ZipFactura zip : zips) {
             String fileName = zip.getUrlPaquete();
+            System.out.println("filename: " + fileName);
             StorageObject objZip = googleStorage.download(fileName, bucketName);
             result = com.google.common.io.Files.toByteArray((File) objZip.get("file"));
             path = Paths.get(folderTemp + fileName);
@@ -78,28 +78,33 @@ public class CargadorFacturas {
             while ((zipEntry = zis.getNextEntry()) != null) {
                 File newFile = newFile(destDir, zipEntry);
                 FileOutputStream fos = new FileOutputStream(newFile);
+                //OutputStreamWriter fos = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.ISO_8859_1);
                 int len;
                 while ((len = zis.read(buffer)) > 0) {
+                    //fos.write(new String(buffer), 0, len);
                     fos.write(buffer, 0, len);
                 }
+                archivosZip.add(newFile);
                 fos.close();
             }
             zis.closeEntry();
             zis.close();
-            archivosZip.add(files[i]);
+            //archivosZip.add(files[i]);
         }
 
         //Ya que tengo los archivos, procedo a eliminar los zip
         for(File archivo : archivosZip) {
-            archivo.delete();
+            //archivo.delete();
         }
 
         //Registro las facturas creadas
-        files = new File(folderTemp).listFiles();
+        //files = new File(folderTemp).listFiles();
+        System.out.println("files: " + archivosZip.toString());
         facturas = new ArrayList<File>();
-        for (File file : files) {
+        for (File file : archivosZip) {
             if (file.isFile()) {
-                File refFile = new File(file.getName());
+                File destDir = new File(folderTemp);
+                File refFile = new File(destDir, file.getName());
                 facturas.add(refFile);
             }
         }
