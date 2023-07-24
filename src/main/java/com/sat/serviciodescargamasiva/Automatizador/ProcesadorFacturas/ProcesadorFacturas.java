@@ -67,6 +67,7 @@ public class ProcesadorFacturas {
         this.reglas = facturasRepo.cargaReglas(idCliente);
         this.tipoImpuestos = facturasRepo.cargaImpuesto();
         this.cargaRetenciones();
+        System.out.println("Reglas: " + this.reglas.toString());
         Collections.sort(this.reglas);
     }
 
@@ -120,9 +121,15 @@ public class ProcesadorFacturas {
 
         //Solo trabajaremos con facturas PUE. Aquellas que tengan otro método de pago o no tengan el
         //campo incluido serán ignoradas
-        if(facturaJson.getMetodoPago().equals(FacturaJson.PAGO_EN_UNA_SOLA_EXHIBICION)) {
-            factura.setEsPUE(true);
-        } else {
+        try {
+            if (facturaJson.getMetodoPago().equals(FacturaJson.PAGO_EN_UNA_SOLA_EXHIBICION)) {
+                factura.setEsPUE(true);
+            } else {
+                factura.setEsPUE(false);
+                return factura;
+            }
+        } catch (Exception ex) {
+            LOGGER.info(ex.getMessage());
             factura.setEsPUE(false);
             return factura;
         }
@@ -133,25 +140,24 @@ public class ProcesadorFacturas {
 
             claveProdServ = Long.parseLong(concepto.getClaveProdServ());
             importe = Double.parseDouble(concepto.getImporte());
-            String descripcionOperacion = concepto.getDescripcion();
 
             //Por cada concepto se creará una cuenta
             Cuenta cuenta = new Cuenta(factura.getClienteEmisorReceptor());
             cuenta.setImporte(importe);
-            cuenta.setDescripcionOperacion(descripcionOperacion);
 
             Regla reglaAEncontrar = new Regla(claveProdServ);
             int indiceRegla = Collections.binarySearch(this.reglas, reglaAEncontrar);
             if(indiceRegla >= 0) {
                 Regla reglaAplicable = this.reglas.get(indiceRegla);
-                System.out.println("Regla: "+reglaAplicable);
                 String codigo = reglaAplicable.getCodigoCuenta();
                 cuenta.setCodigoCuenta(codigo);
+                cuenta.setDescripcionOperacion(reglaAplicable.getDescripcionProducto());
                 factura.addCuenta(cuenta);
             } else {
-                System.out.println("Salvando producto Regla no cumplido");
+                System.out.println("\nSalvando producto Regla no cumplido");
                 System.out.println("IdCliente: "+this.idCliente);
                 System.out.println("IdUsuario: "+this.idUsuario);
+                System.out.println("Clave: "+claveProdServ);
                 ProductoReglaNoCumplido prod = new ProductoReglaNoCumplido(
                         claveProdServ, this.idSolicitud, true, this.idCliente, this.idUsuario
                 );

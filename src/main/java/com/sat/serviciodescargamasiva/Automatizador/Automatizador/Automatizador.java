@@ -30,9 +30,9 @@ public class Automatizador {
             List<File> archivos = cargadorFacturas.obtenFacturas(idDescarga);
             procesadorFacturas.initialize(idDescarga, idCliente, rfcCliente, idUsuario);
             procesadorFacturas.procesaFacturas(archivos);
-            if(procesadorFacturas.hayProductosPendientes()) {
+            /*if(procesadorFacturas.hayProductosPendientes()) {
                 procesadorFacturas.guardaProductosPendientes();
-            }
+            }*/
         } catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {

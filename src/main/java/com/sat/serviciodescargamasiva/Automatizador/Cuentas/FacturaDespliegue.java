@@ -12,6 +12,6 @@ public class FacturaDespliegue {
     private long idFactura;
 
     @JsonProperty("nombreFactura")
-    private JsonNode nombreFactura;
+    private FacturaDespliegueNombre nombreFactura;
 
 }

@@ -31,6 +31,7 @@ public class Regla implements Comparable<Regla> {
     private boolean impuestoRetenido;
     private double tasaRetenido;
     private String impuesto;
+    private String descripcionProducto;
 
 
     public Regla(long claveProdServ) {
